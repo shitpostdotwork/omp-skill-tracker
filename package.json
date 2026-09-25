@@ -1,0 +1,15 @@
+{
+  "name": "skill-tracker",
+  "version": "0.1.0",
+  "description": "OMP extension that tracks remote SKILL.md files by SHA and auto-updates them on session start.",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://git.shitpost.work/shitpost.work/omp-skill-tracker.git"
+  },
+  "author": "harutohiroki",
+  "license": "MIT",
+  "omp": {
+    "extensions": ["index.ts"]
+  }
+}
