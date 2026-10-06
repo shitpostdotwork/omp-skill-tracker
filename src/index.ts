@@ -12,7 +12,7 @@
 
 import { mkdir, appendFile } from "node:fs/promises";
 import { YAML } from "bun";
-import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@oh-my-pi/pi-coding-agent";
 import { getAgentDir } from "@oh-my-pi/pi-coding-agent";
 
 const GITHUB_API = "https://api.github.com/repos";
@@ -112,10 +112,10 @@ async function ensureConfig(): Promise<void> {
 async function loadTrackedSkills(): Promise<TrackedSkill[]> {
   try {
     const content = await Bun.file(CONFIG_FILE).text();
-    const config = YAML.parse(content);
+    const config = YAML.parse(content) as Record<string, unknown>;
     const skills: TrackedSkill[] = [];
     for (const [_key, group] of Object.entries(config)) {
-      if (typeof group !== "object" || !group.repo || !group.skills) continue;
+      if (group == null || typeof group !== "object" || !("repo" in group) || !("skills" in group)) continue;
       const g = group as { repo: string; ref: string; host?: string; base?: string; cooldown?: number; skills: Array<{ name: string; path: string }> };
       const host = (g.host as HostType) ?? "github";
       const cooldown = g.cooldown ?? DEFAULT_COOLDOWN_MS;
@@ -168,7 +168,7 @@ async function getRepoTree(skill: TrackedSkill): Promise<{ tree: Record<string, 
       }
 
       if (!res.ok) return { tree: null, rateLimited: false };
-      const data = await res.json();
+      const data = (await res.json()) as { tree?: Array<{ type: string; path: string; sha: string }> };
       const tree: Record<string, string> = {};
       for (const entry of data.tree ?? []) {
         if (entry.type === "blob") tree[entry.path] = entry.sha;
@@ -180,7 +180,7 @@ async function getRepoTree(skill: TrackedSkill): Promise<{ tree: Record<string, 
       const encodedRepo = encodeURIComponent(repo);
       const res = await fetch(`${GITLAB_API}/${encodedRepo}/repository/tree?ref=${encodeURIComponent(ref)}&recursive=true`);
       if (!res.ok) return { tree: null, rateLimited: false };
-      const data = await res.json();
+      const data = (await res.json()) as Array<{ type: string; path: string; sha: string }>;
       const tree: Record<string, string> = {};
       for (const entry of data ?? []) {
         if (entry.type === "blob") tree[entry.path] = entry.sha;
@@ -191,7 +191,7 @@ async function getRepoTree(skill: TrackedSkill): Promise<{ tree: Record<string, 
     if (host === "forgejo") {
       const res = await fetch(`${base}/api/v1/repos/${repo}/git/trees/${ref}?recursive=1`);
       if (!res.ok) return { tree: null, rateLimited: false };
-      const data = await res.json();
+      const data = (await res.json()) as { tree?: Array<{ type: string; path: string; sha: string }> };
       const tree: Record<string, string> = {};
       for (const entry of data.tree ?? []) {
         if (entry.type === "blob") tree[entry.path] = entry.sha;
@@ -206,11 +206,11 @@ async function getRepoTree(skill: TrackedSkill): Promise<{ tree: Record<string, 
   }
 }
 
-async function checkForUpdates(ctx: Parameters<Parameters<typeof pi.on>[1]>[1], force: boolean): Promise<void> {
+async function checkForUpdates(ctx: ExtensionContext, force: boolean): Promise<void> {
   await ensureConfig();
   const trackedSkills = await loadTrackedSkills();
   if (trackedSkills.length === 0) {
-    ctx.ui.notify("skill-tracker: no skills configured in " + CONFIG_FILE, "warn");
+    ctx.ui.notify("skill-tracker: no skills configured in " + CONFIG_FILE, "warning");
     return;
   }
   const state = await readState();
@@ -229,7 +229,7 @@ async function checkForUpdates(ctx: Parameters<Parameters<typeof pi.on>[1]>[1], 
   for (const [key, group] of repoGroups) {
     const result = await getRepoTree(group.skills[0]);
     if (result.rateLimited) {
-      ctx.ui.notify("skill-tracker: API rate limit hit. Set GITHUB_TOKEN env var for GitHub repos, or try again later.", "warn");
+      ctx.ui.notify("skill-tracker: API rate limit hit. Set GITHUB_TOKEN env var for GitHub repos, or try again later.", "warning");
       return;
     }
     group.tree = result.tree;
