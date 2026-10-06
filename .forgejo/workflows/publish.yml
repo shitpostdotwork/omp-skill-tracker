@@ -9,6 +9,8 @@ jobs:
   publish:
     name: Publish to Forgejo npm registry
     runs-on: linux-amd64
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
