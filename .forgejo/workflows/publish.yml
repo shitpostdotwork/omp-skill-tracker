@@ -5,9 +5,6 @@ on:
     tags:
       - "v*.*.*"
 
-permissions:
-  contents: write
-
 jobs:
   publish:
     name: Publish to Forgejo npm registry
@@ -85,8 +82,14 @@ jobs:
           FORGEJO_TOKEN: ${{ secrets.NPM_TOKEN }}
         shell: bash
         run: |
-          if gh release view "$FORGEJO_REF_NAME" >/dev/null 2>&1; then
-            echo "Release $FORGEJO_REF_NAME already exists; skipping"
+          OWNER="$(echo "$FORGEJO_REPOSITORY" | cut -d'/' -f1)"
+          REPO="$(echo "$FORGEJO_REPOSITORY" | cut -d'/' -f2)"
+          TAG="$FORGEJO_REF_NAME"
+          if curl -s -o /dev/null -w "%{http_code}" "https://git.shitpost.work/api/v1/repos/$OWNER/$REPO/releases/tags/$TAG" | grep -q "200"; then
+            echo "Release $TAG already exists; skipping"
           else
-            gh release create "$FORGEJO_REF_NAME" --verify-tag --generate-notes
+            curl -s -X POST "https://git.shitpost.work/api/v1/repos/$OWNER/$REPO/releases" \
+              -H "Authorization: token $FORGEJO_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"tag_name\":\"$TAG\",\"generate_release_notes\":true}"
           fi

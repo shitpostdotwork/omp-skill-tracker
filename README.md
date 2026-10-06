@@ -41,9 +41,25 @@ group-name:
 
 ## Installation
 
-Drop `skill-tracker` into `~/.omp/agent/extensions/` and restart OMP. On first run it creates `~/.omp/agent/skills-tracker.yml` with an example config. Edit that file and add the skills you want to track.
+### OMP
 
-**Pi users:** change line 15-16 of `index.ts` from `@oh-my-pi/pi-coding-agent` to `@earendil-works/pi-coding-agent`. That's the only difference between the two platforms.
+```bash
+omp plugin install @shitpost.work/omp-skill-tracker
+```
+
+### Pi
+
+```bash
+pi install npm:@shitpost.work/omp-skill-tracker
+```
+
+Both commands use shitpost.work Forgejo npm registry. Configure it first if needed:
+
+```bash
+npm config set @shitpost.work:registry https://git.shitpost.work/api/packages/shitpost.work/npm/
+```
+
+On first run it creates `~/.omp/agent/skills-tracker.yml` with an example config.
 
 **Tip:** set `GITHUB_TOKEN` or `GH_TOKEN` env var for higher API rate limits.
 

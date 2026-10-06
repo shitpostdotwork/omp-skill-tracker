@@ -1,6 +1,6 @@
 {
   "name": "@shitpost.work/omp-skill-tracker",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "OMP/Pi extension that tracks remote SKILL.md files by SHA and auto-updates them on session start.",
   "type": "module",
   "main": "./dist/index.js",
